@@ -1,0 +1,99 @@
+﻿options:
+	perm: quizz.perm #Permission pour utiliser les commandes du Quizz
+	perm.error: &cVous n'avez pas la permission
+	cooldown: 5
+	quizz.inactif: &cIl n'y a pas de Quizz actif
+	
+variables:
+	{quizz.start} = false
+	{quizz.cooldown.%player%} = false
+	
+	
+command /quizz [<text="help">] [<text>] [<text>]:
+	permission: {@perm}
+	permission message: {@perm.error}
+	trigger:
+		if arg 1 is "help":
+			message "&7&m--&7[&3✪&7]&7&m----------------&7[&6Quizz&7]&7&m----------------&7[&3✪&7]&7&m--"
+			json("%player%", "&3&l> &3/quizz create <nom> &f&l- &7&oCrée un nouveau Quizz||ttp:&fClique pour créer un nouveau Quizz||sgt:/quizz create ")
+			json("%player%", "&3&l> &3/quizz delete <nom> &f&l- &7&oSupprimer un Quizz||ttp:&fClique pour supprimer un Quizz||sgt:/quizz delete ")
+			json("%player%", "&3&l> &3/quizz liste &f&l- &7&oListe des Quizz||ttp:&fClique pour voir la liste des Quizz||cmd:/quizz liste")
+			message "&7&m-----------------------------------------------"
+			json("%player%", "&3&l> &3/quizz rep <nom> <reponse> &f&l- &7&oSet une reponse à un Quizz||ttp:&fClique pour mettre la reponse du Quizz||sgt:/quizz rep ")
+			json("%player%", "&3&l> &3/quizz start <nom> <question> &f&l- &7&oDémarre un Quizz||ttp:&fClique démarrer un Quizz||sgt:/quizz start ")
+			json("%player%", "&3&l> &3/quizz stop <nom> &f&l- &7&oStop un Quizz||ttp:&fClique stop un Quizz||sgt:/quizz stop ")
+			message "&7&m--&7[&3✪&7]&7&m--------------------------------------&7[&3✪&7]&7&m--"
+			
+		if arg 1 is "create":
+			if arg 2 is set:
+				set {Quizz.%arg 2%} to arg 2
+				add arg 2 to {quizz.liste::*}
+				message "&7&l[&6&lQuizz&7&l] &eNouveau Quizz : &c%arg 2%"
+			else:
+				message "&7&l[&6&lQuizz&7&l] &cVous devez mettre un nom de Quizz &7&o/quizz create <nom>"
+		if arg 1 is "delete":
+			if arg 2 is set:
+				if {Quizz.%arg 2%} is set:
+					clear {Quizz.%arg 2%}
+					remove arg 2 from {quizz.liste::*}
+					message "&7&l[&6&lQuizz&7&l] &cVous avez supprimé le Quizz &6%arg 2%"
+				else:
+					message "&7&l[&6&lQuizz&7&l] &cLe Quizz &6&l%arg 2% &cn'exite pas"
+			else:
+				message "&7&l[&6&lQuizz&7&l] &cVous devez spécifier le nom du Quizz à supprimer &7&o/quizz delete <nom>"
+		if arg 1 is "liste":
+			message "&7&l[&6&lQuizz&7&l] &e%{quizz.liste::*}%"
+		if arg 1 is "rep":
+			if arg 2 is set:
+				if arg 3 is set:
+					set {Quizz.rep.%arg 2%} to arg 3
+					message "&7&l[&6&lQuizz&7&l] &eReponse pour le Quizz &6%arg 2% &e= &6%arg 3%"
+				else:
+					message "&7&l[&6&lQuizz&7&l] &cVeuillez sélectionner une reponse &7&o/quizz rep %arg 2% <reponse>"
+			else:
+				message "&7&l[&6&lQuizz&7&l] &cVeuillez sélectionner un Quizz &7&o/quizz rep <nom> <reponse>"
+		if arg 1 is "start":
+			if arg 2 is set:
+				if {Quizz.%arg 2%} is set:
+					if arg 3 is set:
+						if {Quizz.rep.%arg 2%} is set:
+							set {quizz.start} to true
+							set {quizz.start.rep} to {Quizz.rep.%arg 2%}
+							broadcast "&7&l[&6&lQuizz&7&l] &4%player% &evient de démarrer un Quizz"
+							broadcast "&7&l[&6&lQuizz&7&l] &eLa question est : &b&o%arg 3%"
+							broadcast "&7&l[&6&lQuizz&7&l] &eVous pouvez repondre avec : &6&o/reponse <reponse>"
+						else:
+							message "&7&l[&6&lQuizz&7&l] &cIl n'y a pas de reponse pour le Quizz &6&l%arg 2% &7/quizz rep %arg 2% <reponse>"
+					else:	
+						message "&7&l[&6&lQuizz&7&l] &cVeuillez spécifier une question &b&o/quizz start %arg 2% <question>"
+				else:
+					message "&7&l[&6&lQuizz&7&l] &cIl n'y a pas de Quizz nommé &6&l%arg 2% &7&o/quizz create %arg 2%"
+			else:
+				message "&7&l[&6&lQuizz&7&l] &cVeuillez spécifier une Quizz &b&o/quizz start <nom> <question>"
+		if arg 1 is "stop":
+			if {quizz.start} is true:
+				set {quizz.start} to false
+				broadcast "&7&l[&6&lQuizz&7&l] &c%player% &evient de stopper le Quizz"
+			else:
+				message "&7&l[&6&lQuizz&7&l] &cIl n'y a aucun Quizz actif"
+				
+command /reponse <text>:
+	trigger:
+		if {quizz.start} is true:
+			if {quizz.cooldown.%player%} is false:
+				if arg 1 is not set:
+					message "&7&l[&6&lQuizz&7&l] &cVeuillez spécifier une reponse &b&o/reponse <reponse>"
+				else:
+					if arg 1 is {quizz.start.rep}:	
+						broadcast "&7&l[&6&lQuizz&7&l] &c%player% &6à repondu correctement : &b&o%arg 1%"
+						set {quizz.start} to false
+					else:
+						message "&7&l[&6&lQuizz&7&l] &cVous avez repondu faux , retenter votre chance dans {@cooldown} secondes :("
+						broadcast "&7&l[&6&lQuizz&7&l] &e%player% &7a repondu faux : &b%arg 1%"
+						set {quizz.cooldown.%player%} to true
+						wait {@cooldown} seconds 
+						set {quizz.cooldown.%player%} to false
+			else: 
+				message "&7&l[&6&lQuizz&7&l] &cVeuillez attendre {@cooldown} seconds avant de redonner une reponse"
+		else:
+			message "&7&l[&6&lQuizz&7&l] &c{@quizz.inactif}"
